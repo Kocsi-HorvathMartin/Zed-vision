@@ -6,6 +6,14 @@ import numpy as np
 from pymavlink import mavutil
 import time
 
+def akt_poz():           #Jelenlegi pozícióba
+    connection.mav.command_long_send(connection.target_system,
+                                 connection.target_component, 
+                                 mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE, 
+                                 0, 32, 0,0,0,0,0,1)
+    msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True)
+    return msg
+
 def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
     
     # Create a VISION_POSITION_ESTIMATE message
@@ -108,6 +116,7 @@ while not keyboard.is_pressed('c'):
         roll, pitch, yaw = quaternion_to_euler(orientation)
         print(f"Pitch: {pitch}, Roll: {roll}, Yaw: {yaw}")
         send_vision_position_estimate(tx,ty,tz*(-1),roll,pitch,yaw)
+        print(akt_poz())
         os.system('cls')
 # Close the camera
 zed.disable_positional_tracking()
