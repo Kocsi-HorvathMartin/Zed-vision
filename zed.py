@@ -68,6 +68,18 @@ def quaternion_to_euler(q):
 
     return roll, pitch, yaw
 
+def translation():
+    py_translation = sl.Translation()
+    tx = zed_pose.get_translation(py_translation).get()[0]
+    ty = zed_pose.get_translation(py_translation).get()[1]
+    tz = zed_pose.get_translation(py_translation).get()[2]
+    return tx,ty,tz*(-1)
+
+def orient():
+    py_orientation = sl.Orientation()
+    orientation = [zed_pose.get_orientation(py_orientation).get()[3], zed_pose.get_orientation(py_orientation).get()[0], zed_pose.get_orientation(py_orientation).get()[1], zed_pose.get_orientation(py_orientation).get()[2]]
+    return orientation
+
 zed = sl.Camera()
 
 # Set configuration parameters
@@ -84,51 +96,46 @@ if (err != sl.ERROR_CODE.SUCCESS) :
 zed_serial = zed.get_camera_information().serial_number
 print("Hello! This is my serial number: ", zed_serial)
 
-connection=mavutil.mavlink_connection('127.0.0.1:14550')
-connection.wait_heartbeat()
-print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
-#mode(4)
-#arm(1)
-time.sleep(2)
 # Enable positional tracking with default parameters
 py_transform = sl.Transform()  # First create a Transform object for TrackingParameters object
 tracking_parameters = sl.PositionalTrackingParameters(_init_pos=py_transform)
+
 err = zed.enable_positional_tracking(tracking_parameters)
 if err != sl.ERROR_CODE.SUCCESS:
     print("Enable positional tracking : "+repr(err)+". Exit program.")
     zed.close()
     exit()
 
-# Track the camera positionc
+# Track the camera position
 zed_pose = sl.Pose()
-
-zed_sensors = sl.SensorsData()
 runtime_parameters = sl.RuntimeParameters()
-    
-can_compute_imu = zed.get_camera_information().camera_model != sl.MODEL.ZED
+
+connection=mavutil.mavlink_connection('127.0.0.1:14550')
+connection.wait_heartbeat()
+print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
+
 while not keyboard.is_pressed('c'):
     if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
+        os.system('cls')
         # Get the pose of the left eye of the camera with reference to the world frame
         zed.get_position(zed_pose, sl.REFERENCE_FRAME.WORLD)
         
         # Display the translation and timestamp
-        py_translation = sl.Translation()
-        tx = zed_pose.get_translation(py_translation).get()[0]
-        ty = zed_pose.get_translation(py_translation).get()[1]
-        tz = zed_pose.get_translation(py_translation).get()[2]
+        tx,ty,tz=translation()
 
         # Display the orientation quaternion
-        py_orientation = sl.Orientation()
-        orientation = [zed_pose.get_orientation(py_orientation).get()[3], zed_pose.get_orientation(py_orientation).get()[0], zed_pose.get_orientation(py_orientation).get()[1], zed_pose.get_orientation(py_orientation).get()[2]]
+        orientation=orient()
+
         # Convert quaternion to Euler angles
         roll, pitch, yaw = quaternion_to_euler(orientation)
-        send_vision_position_estimate(tx,ty,tz*(-1),roll,pitch,yaw)
+        send_vision_position_estimate(tx,ty,tz,roll,pitch,yaw)
         print(akt_poz())
-        os.system('cls')
+
     if keyboard.is_pressed('1'):
         arm(1)
     if keyboard.is_pressed('0'):
         arm(0)
+
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
