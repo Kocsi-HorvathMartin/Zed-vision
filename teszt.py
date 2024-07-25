@@ -9,7 +9,7 @@ def akt_poz():           #Jelenlegi pozícióba
     return msg
 
 
-connection=mavutil.mavlink_connection('udp')
+connection=mavutil.mavlink_connection('127.0.0.1:14550')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 akt_poz()

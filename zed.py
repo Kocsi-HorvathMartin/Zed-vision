@@ -14,6 +14,21 @@ def arm(arm):            #Armolás/disarmolás
         msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
         print(msg)
 
+def leszall():          #Leszállás
+    connection.mav.command_long_send(connection.target_system,                       #Leszállás
+                                     connection.target_component,
+                                     mavutil.mavlink.MAV_CMD_NAV_LAND,
+                                     0,0,0,0,0,0,0,0)
+    msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
+    print(msg)
+    
+    connection.mav.command_long_send(connection.target_system,                      #Disarmolás
+                                 connection.target_component, 
+                                 mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 
+                                 0, 0, 0,0,0,0,0,0)
+    msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
+    print(msg)
+
 def akt_poz():           #Jelenlegi pozícióba
     connection.mav.command_long_send(connection.target_system,
                                  connection.target_component, 
@@ -131,6 +146,11 @@ while not keyboard.is_pressed('c'):
         send_vision_position_estimate(tx,ty,tz,roll,pitch,yaw)
         print(akt_poz())
 
+    # Try to grab a new frame
+    err = zed.grab(runtime_parameters)
+    if err != sl.ERROR_CODE.SUCCESS:
+        leszall()
+
     if keyboard.is_pressed('1'):
         arm(1)
     if keyboard.is_pressed('0'):
@@ -139,3 +159,4 @@ while not keyboard.is_pressed('c'):
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
+arm(0)
