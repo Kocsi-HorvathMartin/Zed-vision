@@ -3,6 +3,24 @@ import os
 import keyboard
 import math
 import numpy as np
+from pymavlink import mavutil
+import time
+
+def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
+    
+    # Create a VISION_POSITION_ESTIMATE message
+    msg = connection.mav.vision_position_estimate_encode(
+        int(time.time() * 1000),  # Timestamp in milliseconds since boot
+        x,  # X position in meters
+        y,  # Y position in meters
+        z,  # Z position in meters
+        roll,  # Roll angle in radians
+        pitch,  # Pitch angle in radians
+        yaw  # Yaw angle in radians
+    )
+    # Send the message
+    connection.mav.send(msg)
+    print(f"Vision Position Estimate sent: x={x}, y={y}, z={z}, roll={roll}, pitch={pitch}, yaw={yaw}")
 
 # Function to normalize a quaternion
 def normalize_quaternion(q):
@@ -50,6 +68,9 @@ if (err != sl.ERROR_CODE.SUCCESS) :
 zed_serial = zed.get_camera_information().serial_number
 print("Hello! This is my serial number: ", zed_serial)
 
+connection=mavutil.mavlink_connection('com8')
+connection.wait_heartbeat()
+print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
 # Enable positional tracking with default parameters
 py_transform = sl.Transform()  # First create a Transform object for TrackingParameters object
@@ -86,8 +107,8 @@ while not keyboard.is_pressed('c'):
         # Convert quaternion to Euler angles
         roll, pitch, yaw = quaternion_to_euler(orientation)
         print(f"Pitch: {pitch}, Roll: {roll}, Yaw: {yaw}")
+        send_vision_position_estimate(tx,ty,tz*(-1),roll,pitch,yaw)
         os.system('cls')
-
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
