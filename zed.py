@@ -14,7 +14,7 @@ def akt_poz():           #Jelenlegi pozícióba
     msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True)
     return msg
 
-def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
+def send_vision_position_estimate(x, y, z, roll, pitch, yaw,vx,vy,vz):
     
     # Create a VISION_POSITION_ESTIMATE message
     msg = connection.mav.vision_position_estimate_encode(
@@ -28,7 +28,17 @@ def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
     )
     # Send the message
     connection.mav.send(msg)
-    print(f"Vision Position Estimate sent: x={x}, y={y}, z={z}, roll={roll}, pitch={pitch}, yaw={yaw}")
+
+    # Create a VISION_POSITION_ESTIMATE message
+    msg = connection.mav.vision_speed_estimate_encode(
+        int(time.time() * 1000),  # Timestamp in milliseconds since boot
+        vx,  # X position in meters
+        vy,  # Y position in meters
+        vz  # Z position in meters
+    )
+    # Send the message
+    connection.mav.send(msg)
+    print(f"Vision Position Estimate sent: x={x}, y={y}, z={z}, vx={vx}, vy={vy}, vz={vz}")
 
 # Function to normalize a quaternion
 def normalize_quaternion(q):
@@ -89,8 +99,7 @@ if err != sl.ERROR_CODE.SUCCESS:
     zed.close()
     exit()
 
-# Track the camera position during 1000 frames
-i = 0
+# Track the camera position
 zed_pose = sl.Pose()
 
 zed_sensors = sl.SensorsData()
@@ -112,12 +121,24 @@ while not keyboard.is_pressed('c'):
         # Display the orientation quaternion
         py_orientation = sl.Orientation()
         orientation = [zed_pose.get_orientation(py_orientation).get()[3], zed_pose.get_orientation(py_orientation).get()[0], zed_pose.get_orientation(py_orientation).get()[1], zed_pose.get_orientation(py_orientation).get()[2]]
+        
         # Convert quaternion to Euler angles
         roll, pitch, yaw = quaternion_to_euler(orientation)
-        print(f"Pitch: {pitch}, Roll: {roll}, Yaw: {yaw}")
-        send_vision_position_estimate(tx,ty,tz*(-1),roll,pitch,yaw)
+
+        if can_compute_imu: 
+                zed.get_sensors_data(zed_sensors, sl.TIME_REFERENCE.IMAGE)
+                zed_imu = zed_sensors.get_imu_data()               
+                #Display the IMU angular velocity
+                a_velocity = [0,0,0]
+                zed_imu.get_angular_velocity(a_velocity)
+                vx = a_velocity[0]
+                vy = a_velocity[1]
+                vz = a_velocity[2]
+
+        send_vision_position_estimate(tx,ty,tz*(-1),roll,pitch,yaw,vx,vy,vz)
         print(akt_poz())
         os.system('cls')
+
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
