@@ -15,7 +15,7 @@ def arm(arm):
         0, arm, 0, 0, 0, 0, 0, 0
     )
     msg = connection.recv_match(type='COMMAND_ACK', blocking=True)
-    print(msg)
+    return msg
 
 # Leszállás és disarmolás
 def leszall():
@@ -28,6 +28,7 @@ def leszall():
     )
     msg = connection.recv_match(type='COMMAND_ACK', blocking=True)
     print(msg)
+    print(arm(0))
 
 # Jelenlegi pozíció lekérdezése
 def akt_poz():
@@ -135,7 +136,7 @@ zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
 # MAVLink kapcsolat létrehozása
-connection = mavutil.mavlink_connection('127.0.0.1:14550')
+connection = mavutil.mavlink_connection('127.0.0.1:14552')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
@@ -166,9 +167,13 @@ while not keyboard.is_pressed('h'):
     if keyboard.is_pressed('1'):
         arm(1)
     if keyboard.is_pressed('0'):
-        arm(0)
+        print(arm(0))
+        if arm(0).result!=0:
+            leszall()
 
 # Kamera bezárása
 zed.disable_positional_tracking()
 zed.close()
-arm(0)
+print(arm(0))
+if arm(0).result!=0:
+    leszall()
