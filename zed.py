@@ -28,16 +28,6 @@ def leszall():
     )
     msg = connection.recv_match(type='COMMAND_ACK', blocking=True)
     print(msg)
-    
-    # Disarmolás parancs küldése
-    connection.mav.command_long_send(
-        connection.target_system,                      
-        connection.target_component, 
-        mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 
-        0, 0, 0, 0, 0, 0, 0, 0
-    )
-    msg = connection.recv_match(type='COMMAND_ACK', blocking=True)
-    print(msg)
 
 # Jelenlegi pozíció lekérdezése
 def akt_poz():
@@ -149,7 +139,7 @@ connection = mavutil.mavlink_connection('127.0.0.1:14550')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
-while not keyboard.is_pressed('c'):
+while not keyboard.is_pressed('h'):
     if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
         os.system('cls')
         
@@ -157,7 +147,7 @@ while not keyboard.is_pressed('c'):
         zed.get_position(zed_pose, sl.REFERENCE_FRAME.WORLD)
         
         # Transzláció és időbélyeg lekérése
-        tx, ty, tz = translation()
+        ty, tx, tz = translation()
 
         # Orientáció kvaternion lekérése
         orientation = orient()
