@@ -135,6 +135,7 @@ connection = mavutil.mavlink_connection('127.0.0.1:14552')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
+#Pozíció stream indítása 1000us-es intervallummal
 connection.mav.command_long_send(
         connection.target_system,
         connection.target_component, 
