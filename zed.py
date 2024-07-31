@@ -32,12 +32,7 @@ def leszall():
 
 # Jelenlegi pozíció lekérdezése
 def akt_poz():
-    connection.mav.command_long_send(
-        connection.target_system,
-        connection.target_component, 
-        mavutil.mavlink.MAV_CMD_REQUEST_MESSAGE, 
-        0, 32, 0, 0, 0, 0, 0, 1
-    )
+    
     msg = connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=5)
     return msg
 
@@ -139,6 +134,13 @@ runtime_parameters = sl.RuntimeParameters()
 connection = mavutil.mavlink_connection('127.0.0.1:14552')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
+
+connection.mav.command_long_send(
+        connection.target_system,
+        connection.target_component, 
+        mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, 
+        0, 32, 1000, 0, 0, 0, 0, 1
+    )
 
 while not keyboard.is_pressed('h'):
     if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
