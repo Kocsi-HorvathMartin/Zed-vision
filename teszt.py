@@ -239,16 +239,17 @@ etx,ety,etz=vision_position_send(etx,ety,etz)
 vx=0
 vy=0
 vz=0
-x=0.92
-y=-0.59
-z=1 
-z*=(-1)
+x=0.6
+y=[-0.79,0.0,0.8,0.8,0.0,-0.79,-0.79,0.0,0.8,0.8,0.0,-0.79]
+z=[-0.27,-0.27,-0.27,-0.76,-0.76,-0.76,-1.23,-1.23,-1.23,-1.171,-1.171,-1.171]
 mozgas()
-while not keyboard.is_pressed('h'):
+i=0
+while i<=12:
     if etx<=x+0.05 and etx>=x-0.05:
-        if ety<=y+0.05 and ety>=y-0.05:
-            leszall()
-            break
+        if ety<=y[i]+0.05 and ety>=y[i]-0.05:
+            if etz<=z[i]+0.05 and etz>=z[i]-0.05:
+                leszall()
+                i+1
     elif keyboard.is_pressed('w'):
             felszall()
     elif keyboard.is_pressed('s'):
