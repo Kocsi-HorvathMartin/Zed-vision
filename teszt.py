@@ -24,7 +24,7 @@ def leszall():          #Leszállás
     arm(0)
 
 def akt_poz():           #Jelenlegi pozícióba
-    msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.001)
+    msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.01)
     return msg
 
 def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
@@ -91,8 +91,7 @@ def mode(mode):          #Mód váltás azonosító alapján
                 mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
                 mode)
 
-def mozgas():           #Drón mozgatása x,y,z változónak megfelelően
-    global x,y,z
+def mozgas(x,y,z):           #Drón mozgatása x,y,z változónak megfelelően
     connection.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,connection.target_system,
                                                                                       connection.target_component, 
                                                                                       mavutil.mavlink.MAV_FRAME_LOCAL_NED, 
@@ -186,12 +185,6 @@ def vision_position_send(etx,ety,etz):
         leszall()
 
     return tx,ty,tz
-     
-
-x=10000.0
-y=10000.0
-z=10000.0
-angle=0
 
 zed = sl.Camera()
 
@@ -200,7 +193,6 @@ init_params = sl.InitParameters()
 init_params.camera_resolution = sl.RESOLUTION.AUTO # Use HD720 or HD1200 video mode (default fps: 60)
 init_params.coordinate_system = sl.COORDINATE_SYSTEM.RIGHT_HANDED_Z_UP # Use a right-handed Y-up coordinate system
 init_params.coordinate_units = sl.UNIT.METER # Set units in meters
-
 err = zed.open(init_params)
 if (err != sl.ERROR_CODE.SUCCESS) :
     exit(-1)
@@ -235,32 +227,35 @@ connection.mav.command_long_send(connection.target_system,
 etx=0.0
 ety=0.0
 etz=0.0
-etx,ety,etz=vision_position_send(etx,ety,etz)
 vx=0
 vy=0
 vz=0
 x=0.6
 y=[-0.79,0.0,0.8,0.8,0.0,-0.79,-0.79,0.0,0.8,0.8,0.0,-0.79]
 z=[-0.27,-0.27,-0.27,-0.76,-0.76,-0.76,-1.23,-1.23,-1.23,-1.171,-1.171,-1.171]
-mozgas()
+angle=0
+etx,ety,etz=vision_position_send(etx,ety,etz)
+mozgas(x,y[0],z[0])
 i=0
+
 while i<=12:
+    etx,ety,etz=vision_position_send(etx,ety,etz)
     if etx<=x+0.05 and etx>=x-0.05:
         if ety<=y[i]+0.05 and ety>=y[i]-0.05:
             if etz<=z[i]+0.05 and etz>=z[i]-0.05:
-                leszall()
                 i+1
+                if i<=12:
+                    mozgas(x,y[i],z[i])
     elif keyboard.is_pressed('w'):
-            felszall()
+        felszall()
     elif keyboard.is_pressed('s'):
-            leszall()
+        leszall()
     elif keyboard.is_pressed('4'):
-            mode(4)
+        mode(4)
     elif keyboard.is_pressed('1'):
-            arm(1)
+        arm(1)
+    print(f'Előző pont sorszáma: {i}.')
     
-
-
 print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
 # Close the camera
 zed.disable_positional_tracking()
