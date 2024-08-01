@@ -24,7 +24,7 @@ def leszall():          #Leszállás
     arm(0)
 
 def akt_poz():           #Jelenlegi pozícióba
-    msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.1)
+    msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.001)
     return msg
 
 def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
@@ -153,6 +153,7 @@ def stop():             #Megállás jelenlegi pozícióba
     mozgas()
 
 def vision_position_send(etx,ety,etz):
+    global vx,vy,vz
     if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
         os.system('cls')
         # Get the pose of the left eye of the camera with reference to the world frame
@@ -167,7 +168,15 @@ def vision_position_send(etx,ety,etz):
         # Convert quaternion to Euler angles
         roll, pitch, yaw = quaternion_to_euler(orientation)
         send_vision_position_estimate(tx,ty,tz,roll,pitch,yaw)
-        print(akt_poz())
+        msg=akt_poz()
+        if msg!=None:
+            if abs(vx)<abs(msg.vx):
+                vx=msg.vx
+            if abs(vy)<abs(msg.vy):
+                vy=msg.vy
+            if abs(vz)<abs(msg.vz):
+                vz=msg.vz
+        print(msg)
         if abs(etx-tx)>=0.2 or abs(ety-ty)>=0.2 or abs(etz-tz)>=0.2:
             leszall()
 
@@ -226,7 +235,10 @@ connection.mav.command_long_send(connection.target_system,
 etx=0.0
 ety=0.0
 etz=0.0
-while True:
+vx=0
+vy=0
+vz=0
+while not keyboard.is_pressed('h'):
     etx,ety,etz=vision_position_send(etx,ety,etz)
 
     if keyboard.is_pressed('c'):    #Cél koordináta megadása
@@ -238,10 +250,12 @@ while True:
             while True:
                 etx,ety,etz=vision_position_send(etx,ety,etz)
                 msg=akt_poz()
-                print(msg)
                 if etx<=x+0.05 and etx>=x-0.05:
                     if ety<=y+0.05 and ety>=y-0.05:
                         leszall()
+                        break
+                if msg.x<=x+0.05 and msg.x>=x-0.05:
+                    if msg.y<=y+0.05 and msg.y>=0.05:
                         break
             break
     elif keyboard.is_pressed('w'):
@@ -255,7 +269,7 @@ while True:
     
 
 
-
+print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
