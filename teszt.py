@@ -239,8 +239,8 @@ vx=0
 vy=0
 vz=0
 while not keyboard.is_pressed('h'):
+    os.system('cls')
     etx,ety,etz=vision_position_send(etx,ety,etz)
-
     if keyboard.is_pressed('c'):    #Cél koordináta megadása
             x=0.92
             y=-0.59
@@ -248,15 +248,17 @@ while not keyboard.is_pressed('h'):
             z*=(-1)
             mozgas()
             while True:
+                os.system('cls')
                 etx,ety,etz=vision_position_send(etx,ety,etz)
                 msg=akt_poz()
                 if etx<=x+0.05 and etx>=x-0.05:
                     if ety<=y+0.05 and ety>=y-0.05:
                         leszall()
                         break
-                if msg.x<=x+0.05 and msg.x>=x-0.05:
-                    if msg.y<=y+0.05 and msg.y>=0.05:
-                        break
+                if msg!=None:
+                    if msg.x<=x+0.05 and msg.x>=x-0.05:
+                        if msg.y<=y+0.05 and msg.y>=0.05:
+                            break
             break
     elif keyboard.is_pressed('w'):
             felszall()
