@@ -56,12 +56,12 @@ def quaternion_to_euler(q):
     q = normalize_quaternion(q)
     w, x, y, z = q
 
-    # Pitch (x-axis rotation)
+    # Pitch (y-axis rotation)
     t0 = +2.0 * (w * x + y * z)
     t1 = +1.0 - 2.0 * (x * x + y * y)
     pitch = math.atan2(t0, t1)
 
-    # Roll (y-axis rotation)
+    # Roll (x-axis rotation)
     t2 = +2.0 * (w * y - z * x)
     t2 = +1.0 if t2 > +1.0 else t2
     t2 = -1.0 if t2 < -1.0 else t2
