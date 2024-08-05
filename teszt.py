@@ -220,20 +220,29 @@ vz=0
 i=0
 
 # Define waypoints
-destination=[
-    [0.6,-0.79,-0.27],
-    [0.6,0.0,-0.27],
-    [0.6,0.8,-0.27],
-    [0.6,0.8,-0.76],
-    [0.6,0.0,-0.76],
-    [0.6,-0.79,-0.76],
-    [0.6,-0.79,-1.23],
-    [0.6,0.0,-1.23],
-    [0.6,0.8,-1.23],
-    [0.6,0.8,-1.71],
-    [0.6,0.0,-1.71],
-    [0.6,-0.79,-1.71]
-]
+width=0.8 #float(input("Width of a shelf: "))
+height=0.5 #float(input("Height of a shelf: "))
+shelves_row=3 #int(input("Number of shelf in a row: "))
+shelves_column=4 #int(input("Number of shelf in a column: "))
+first_height=0.2 #float(input("Height of the firs row: "))
+x=0.0
+y=0.0
+z=first_height*(-1)
+destination=[]
+destination.append([x,y,z])
+for i in range(shelves_column):
+    for j in range(shelves_row-1):
+        if i%2==0:
+            y+=width
+            destination.append([x,y,z])
+        else:
+            y-=width
+            destination.append([x,y,z])
+    if len(destination)<shelves_column*shelves_row:
+        z-=height
+        destination.append([x,y,z])
+
+
 etx,ety,etz=vision_position_send(etx,ety,etz)
 felszall()
 mozgas(destination[0])
