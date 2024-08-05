@@ -263,7 +263,7 @@ zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
 # Establish MAVLink connection
-connection=mavutil.mavlink_connection('COM7')
+connection=mavutil.mavlink_connection('127.0.0.1:14552')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
