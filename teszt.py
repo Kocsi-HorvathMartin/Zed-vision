@@ -6,7 +6,8 @@ import numpy as np
 from pymavlink import mavutil
 import time
 
-def arm(arm):            #Armolás/disarmolás
+# Function to arm or disarm the drone
+def arm(arm):            
         connection.mav.command_long_send(connection.target_system,
                                  connection.target_component, 
                                  mavutil.mavlink.MAV_CMD_COMPONENT_ARM_DISARM, 
@@ -14,7 +15,8 @@ def arm(arm):            #Armolás/disarmolás
         msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
         print(msg)
 
-def leszall():          #Leszállás
+# Function to land the drone
+def leszall():          
     connection.mav.command_long_send(connection.target_system,                       #Leszállás
                                      connection.target_component,
                                      mavutil.mavlink.MAV_CMD_NAV_LAND,
@@ -23,7 +25,8 @@ def leszall():          #Leszállás
     print(msg)
     arm(0)
 
-def akt_poz():           #Jelenlegi pozícióba
+# Function to get the current position of the drone
+def akt_poz():          
     msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.01)
     return msg
 
@@ -48,6 +51,7 @@ def normalize_quaternion(q):
     norm = np.linalg.norm(q)
     return q / norm
 
+# Function to convert quaternion to Euler angles
 def quaternion_to_euler(q):
     w, x, y, z = q
 
@@ -73,6 +77,7 @@ def quaternion_to_euler(q):
 
     return roll, pitch, yaw
 
+# Function to get translation from the ZED camera
 def translation():
     py_translation = sl.Translation()
     tx = zed_pose.get_translation(py_translation).get()[0]
@@ -80,31 +85,38 @@ def translation():
     tz = zed_pose.get_translation(py_translation).get()[2]
     return tx,ty,tz*(-1)
 
+# Function to get orientation from the ZED camera
 def orient():
     py_orientation = sl.Orientation()
     orientation = [zed_pose.get_orientation(py_orientation).get()[3], zed_pose.get_orientation(py_orientation).get()[0], zed_pose.get_orientation(py_orientation).get()[1], zed_pose.get_orientation(py_orientation).get()[2]]
     return orientation
 
-def mode(mode):          #Mód váltás azonosító alapján
+# Function to change the flight mode of the drone
+def mode(mode):     
     connection.mav.set_mode_send(
                 connection.target_system,
                 mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
                 mode)
 
-def mozgas(pont):           #Drón mozgatása x,y,z változónak megfelelően
+
+# Function to move the drone to a specified point (x, y, z)
+def mozgas(pont):           
     connection.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,connection.target_system,
                                                                                       connection.target_component, 
                                                                                       mavutil.mavlink.MAV_FRAME_LOCAL_NED, 
                                                                                       int(0b110111111000), pont[0], pont[1], pont[2], 10, 10, 5, 0, 0, 0, 0, 0))
 
-def hatar_szog(szog):   #Heading szögének határolása
+# Function to constrain the heading angle between 0 and 360 degrees
+def hatar_szog(szog):   
     if szog>=360:
         szog-=360
     if szog<0:
         szog+=360
     return szog
 
-def head_irany(fok):    #headingnek megfelelő irányba történő elmozdulás
+
+# Function to move in the direction of the specified heading angle
+def head_irany(fok):   
     global x,y,z
     msg=akt_poz()
     z=msg.z
@@ -113,8 +125,9 @@ def head_irany(fok):    #headingnek megfelelő irányba történő elmozdulás
     y+=0.1*math.sin(fok)
     x+=0.1*math.cos(fok)
     mozgas()
-    
-def felszall():         #Felszállás
+
+# Function to take off    
+def felszall():         
     connection.mav.command_long_send(connection.target_system,                      #GUIDED MODE-ba váltás
                                  connection.target_component,
                                  mavutil.mavlink.MAV_CMD_DO_SET_MODE, 
@@ -131,7 +144,8 @@ def felszall():         #Felszállás
     msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
     print(msg)
 
-def leszall():          #Land the drone at current position
+# Function to land the drone
+def leszall():          
     connection.mav.command_long_send(connection.target_system,
                                      connection.target_component,
                                      mavutil.mavlink.MAV_CMD_NAV_LAND,
@@ -142,6 +156,7 @@ def leszall():          #Land the drone at current position
     global z
     z=0.0
 
+# Function to send vision position estimates and monitor position errors
 def vision_position_send(etx,ety,etz):
     global vx,vy,vz
     if zed.grab(runtime_parameters) == sl.ERROR_CODE.SUCCESS:
@@ -177,6 +192,7 @@ def vision_position_send(etx,ety,etz):
 
     return tx,ty,tz
 
+# Initialize the ZED camera
 zed = sl.Camera()
 
 # Set configuration parameters
@@ -205,22 +221,27 @@ if err != sl.ERROR_CODE.SUCCESS:
 zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
-#Build up 
+# Establish MAVLink connection
 connection=mavutil.mavlink_connection('COM7')       #127.0.0.1:14552
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
+# Set message interval for VISION_POSITION_ESTIMATE
 connection.mav.command_long_send(connection.target_system,
                                  connection.target_component, 
                                  mavutil.mavlink.MAV_CMD_SET_MESSAGE_INTERVAL, 
                                  0, 32, 100000,0,0,0,0,1)
 
+# Initialize variables
+angle=0
 etx=0.0
 ety=0.0
 etz=0.0
 vx=0
 vy=0
 vz=0
+
+# Define waypoints
 destination=[
     [0.6,-0.79,-0.27],
     [0.6,0.0,-0.27],
@@ -235,12 +256,12 @@ destination=[
     [0.6,0.0,-1.71],
     [0.6,-0.79,-1.71]
 ]
-angle=0
 etx,ety,etz=vision_position_send(etx,ety,etz)
 felszall()
 mozgas(destination[0])
 i=0
 
+# Main loop to follow waypoints
 while i<12:
     etx,ety,etz=vision_position_send(etx,ety,etz)
     if etx<=destination[i][0]+0.05 and etx>=destination[i][0]-0.05:
@@ -252,6 +273,7 @@ while i<12:
     print(f'Előző pont sorszáma: {i}.')
     
 print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
+
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
