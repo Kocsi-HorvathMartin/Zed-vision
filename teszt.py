@@ -17,7 +17,7 @@ def arm(arm):
 
 # Function to land the drone
 def leszall():          
-    connection.mav.command_long_send(connection.target_system,                       #Leszállás
+    connection.mav.command_long_send(connection.target_system,                      
                                      connection.target_component,
                                      mavutil.mavlink.MAV_CMD_NAV_LAND,
                                      0,0,0,0,0,0,0,0)
@@ -128,7 +128,7 @@ def head_irany(fok):
 
 # Function to take off    
 def felszall():         
-    connection.mav.command_long_send(connection.target_system,                      #GUIDED MODE-ba váltás
+    connection.mav.command_long_send(connection.target_system,                      
                                  connection.target_component,
                                  mavutil.mavlink.MAV_CMD_DO_SET_MODE, 
                                  0, 1, 4, 0,0,0,0,0)
@@ -137,7 +137,7 @@ def felszall():
 
     print(arm(1))
 
-    connection.mav.command_long_send(connection.target_system,                      #Felszállás
+    connection.mav.command_long_send(connection.target_system,                     
                                  connection.target_component, 
                                  mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 
                                  0, 0,0,0,0,0,0, 1)
