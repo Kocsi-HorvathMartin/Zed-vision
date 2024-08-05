@@ -233,6 +233,11 @@ def mission_upload_waypoints(destination):
     item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,0,1,0,0,0,0,0,0,0)
     item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_LAND,0,1,0,0,0,0,0,0,0)
 
+def mission_clear():
+    connection.mav.mission_clear_all_send(connection.target_system, connection.target_component,255)
+    msg=connection.recv_match(type='MISSION_ACK',blocking=True)
+    print(msg)
+
 # Initialize the ZED camera
 zed = sl.Camera()
 
@@ -267,6 +272,8 @@ connection=mavutil.mavlink_connection('127.0.0.1:14552')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
+mission_clear()
+
 # Set message interval for VISION_POSITION_ESTIMATE
 connection.mav.command_long_send(connection.target_system,
                                  connection.target_component, 
@@ -294,6 +301,7 @@ while True:
     if msg!=0:
         print(msg)
 
+mission_clear()
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
