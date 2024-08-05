@@ -131,8 +131,8 @@ def felszall():         #Felszállás
     msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
     print(msg)
 
-def leszall():          #Leszállás
-    connection.mav.command_long_send(connection.target_system,                       #Leszállás
+def leszall():          #Land the drone at current position
+    connection.mav.command_long_send(connection.target_system,
                                      connection.target_component,
                                      mavutil.mavlink.MAV_CMD_NAV_LAND,
                                      0,0,0,0,0,0,0,0)
@@ -141,15 +141,6 @@ def leszall():          #Leszállás
 
     global z
     z=0.0
-
-def stop():             #Megállás jelenlegi pozícióba
-    global x,y,z
-    msg=akt_poz()
-
-    x=msg.x
-    y=msg.y
-    z=msg.z
-    mozgas()
 
 def vision_position_send(etx,ety,etz):
     global vx,vy,vz
@@ -204,7 +195,6 @@ print("Hello! This is my serial number: ", zed_serial)
 # Enable positional tracking with default parameters
 py_transform = sl.Transform()  # First create a Transform object for TrackingParameters object
 tracking_parameters = sl.PositionalTrackingParameters(_init_pos=py_transform)
-
 err = zed.enable_positional_tracking(tracking_parameters)
 if err != sl.ERROR_CODE.SUCCESS:
     print("Enable positional tracking : "+repr(err)+". Exit program.")
@@ -215,7 +205,8 @@ if err != sl.ERROR_CODE.SUCCESS:
 zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
-connection=mavutil.mavlink_connection('COM8')       #127.0.0.1:14552
+#Build up 
+connection=mavutil.mavlink_connection('COM7')       #127.0.0.1:14552
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
@@ -258,14 +249,6 @@ while i<12:
                 i+=1
                 if i<12:
                     mozgas(destination[i])
-    elif keyboard.is_pressed('w'):
-        felszall()
-    elif keyboard.is_pressed('s'):
-        leszall()
-    elif keyboard.is_pressed('4'):
-        mode(4)
-    elif keyboard.is_pressed('1'):
-        arm(1)
     print(f'Előző pont sorszáma: {i}.')
     
 print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
