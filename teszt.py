@@ -91,11 +91,11 @@ def mode(mode):          #Mód váltás azonosító alapján
                 mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
                 mode)
 
-def mozgas(x,y,z):           #Drón mozgatása x,y,z változónak megfelelően
+def mozgas(pont):           #Drón mozgatása x,y,z változónak megfelelően
     connection.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,connection.target_system,
                                                                                       connection.target_component, 
                                                                                       mavutil.mavlink.MAV_FRAME_LOCAL_NED, 
-                                                                                      int(0b110111111000), x, y, z, 10, 10, 5, 0, 0, 0, 0, 0))
+                                                                                      int(0b110111111000), pont[0], pont[1], pont[2], 10, 10, 5, 0, 0, 0, 0, 0))
 
 def hatar_szog(szog):   #Heading szögének határolása
     if szog>=360:
@@ -230,23 +230,34 @@ etz=0.0
 vx=0
 vy=0
 vz=0
-x=0.6
-y=[-0.79,0.0,0.8,0.8,0.0,-0.79,-0.79,0.0,0.8,0.8,0.0,-0.79]
-z=[-0.27,-0.27,-0.27,-0.76,-0.76,-0.76,-1.23,-1.23,-1.23,-1.171,-1.171,-1.171]
+destination=[
+    [0.6,-0.79,-0.27],
+    [0.6,0.0,-0.27],
+    [0.6,0.8,-0.27],
+    [0.6,0.8,-0.76],
+    [0.6,0.0,-0.76],
+    [0.6,-0.79,-0.76],
+    [0.6,-0.79,-1.23],
+    [0.6,0.0,-1.23],
+    [0.6,0.8,-1.23],
+    [0.6,0.8,-1.71],
+    [0.6,0.0,-1.71],
+    [0.6,-0.79,-1.71]
+]
 angle=0
 etx,ety,etz=vision_position_send(etx,ety,etz)
 felszall()
-mozgas(x,y[0],z[0])
+mozgas(destination[0])
 i=0
 
-while i<=12:
+while i<12:
     etx,ety,etz=vision_position_send(etx,ety,etz)
-    if etx<=x+0.05 and etx>=x-0.05:
-        if ety<=y[i]+0.05 and ety>=y[i]-0.05:
-            if etz<=z[i]+0.05 and etz>=z[i]-0.05:
-                i+1
-                if i<=12:
-                    mozgas(x,y[i],z[i])
+    if etx<=destination[i][0]+0.05 and etx>=destination[i][0]-0.05:
+        if ety<=destination[i][1]+0.05 and ety>=destination[i][1]-0.05:
+            if etz<=destination[i][2]+0.05 and etz>=destination[i][2]-0.05:
+                i+=1
+                if i<12:
+                    mozgas(destination[i])
     elif keyboard.is_pressed('w'):
         felszall()
     elif keyboard.is_pressed('s'):
