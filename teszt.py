@@ -1,6 +1,5 @@
 import pyzed.sl as sl
 import os
-import keyboard
 import math
 import numpy as np
 from pymavlink import mavutil
@@ -23,16 +22,14 @@ def leszall():
                                      0,0,0,0,0,0,0,0)
     msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
     print(msg)
-    arm(0)
 
 # Function to get the current position of the drone
 def akt_poz():          
     msg=connection.recv_match(type='LOCAL_POSITION_NED', blocking=True, timeout=0.01)
     return msg
 
-def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
-    
-    # Create a VISION_POSITION_ESTIMATE message
+# Create a VISION_POSITION_ESTIMATE message
+def send_vision_position_estimate(x, y, z, roll, pitch, yaw):   
     msg = connection.mav.vision_position_estimate_encode(
         int(time.time() * 1000),  # Timestamp in milliseconds since boot
         x,  # X position in meters
@@ -105,26 +102,6 @@ def mozgas(pont):
                                                                                       connection.target_component, 
                                                                                       mavutil.mavlink.MAV_FRAME_LOCAL_NED, 
                                                                                       int(0b110111111000), pont[0], pont[1], pont[2], 10, 10, 5, 0, 0, 0, 0, 0))
-
-# Function to constrain the heading angle between 0 and 360 degrees
-def hatar_szog(szog):   
-    if szog>=360:
-        szog-=360
-    if szog<0:
-        szog+=360
-    return szog
-
-
-# Function to move in the direction of the specified heading angle
-def head_irany(fok):   
-    global x,y,z
-    msg=akt_poz()
-    z=msg.z
-    fok=hatar_szog(fok)
-    fok=round(math.radians(fok),2)
-    y+=0.1*math.sin(fok)
-    x+=0.1*math.cos(fok)
-    mozgas()
 
 # Function to take off    
 def felszall():         
@@ -222,7 +199,7 @@ zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
 # Establish MAVLink connection
-connection=mavutil.mavlink_connection('COM7')       #127.0.0.1:14552
+connection=mavutil.mavlink_connection('COM7')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
 
@@ -240,6 +217,7 @@ etz=0.0
 vx=0
 vy=0
 vz=0
+i=0
 
 # Define waypoints
 destination=[
@@ -259,7 +237,6 @@ destination=[
 etx,ety,etz=vision_position_send(etx,ety,etz)
 felszall()
 mozgas(destination[0])
-i=0
 
 # Main loop to follow waypoints
 while i<12:
