@@ -48,7 +48,7 @@ def mission_upload_waypoints(): #ez
     item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 1, 1, 0, 0.1, 0, 0, 0, 0, 0)
     item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 1, 0, 0.1, 0, 0, 0, 0, 0.2)
     for i in range(len(destination)):
-        item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 1, 0, 0.1, 0, 0, destination[i][0], destination[i][1], destination[i][2])
+        item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_WAYPOINT, 0, 0, 0, 0.1, 0, 0, destination[i][0], destination[i][1], destination[i][2])
     item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH, 0, 1, 0, 0, 0, 0, 0, 0, 0)
     item(mavutil.mavlink.MAV_FRAME_GLOBAL_RELATIVE_ALT, mavutil.mavlink.MAV_CMD_NAV_LAND, 0, 1, 0, 0, 0, 0, 0, 0, 0)
 
@@ -296,6 +296,30 @@ def define_waypoints():
             z-=height
             destination.append([x,y,z])
 
+def start():            #Mission elindítása
+    connection.mav.command_long_send(connection.target_system, 
+                                connection.target_component,
+                                mavutil.mavlink.MAV_CMD_MISSION_START,
+                                0,0,0,0,0,0,0,0)
+    mode(4) #Guided mode
+    arm(1)  #Armolás
+    mode(3) #Auto mód
+
+def reached():
+    msg=connection.recv_match(type='MISSION_ITEM_REACHED', blocking=True, timeout=0.01)
+    if msg==None:
+        return False
+    else:
+        return True
+
+def mission_continue():
+    connection.mav.command_long_send(connection.target_system,                      #GUIDED MODE-ba váltás
+                                 connection.target_component,
+                                 mavutil.mavlink.MAV_CMD_DO_PAUSE_CONTINUE, 
+                                 0, 1, 0, 0,0,0,0,0)
+    msg=connection.recv_match(type='COMMAND_ACK', blocking=True)
+    print(msg)
+
 # Main loop to follow waypoints
 def main():
     initialize_zed()
@@ -304,26 +328,23 @@ def main():
     mission_upload_waypoints() #
     feltolt() #ez
     etx, ety, etz = vision_position_send(0.0, 0.0, 0.0)
+    start()
     i=0
     while i<12:
-        etx,ety,etz=vision_position_send(etx,ety,etz)
-        if etx<=destination[i][0]+0.05 and etx>=destination[i][0]-0.05:
-            if ety<=destination[i][1]+0.05 and ety>=destination[i][1]-0.05:
-                if etz<=destination[i][2]+0.05 and etz>=destination[i][2]-0.05:
-                    i+=1
-                    if i<12:
-                        start_time =time.time()
-                        while True:
-                            current_time = time.time()
-                            elapsed_time = current_time - start_time
-                            etx, ety, etz = vision_position_send(etx, ety, etz)
-                            print(f"Current position: etx={etx}, ety={ety}, etz={etz}")
-                            if elapsed_time >=3:
-                                print("várakozás")
-                                if keyboard.is_pressed('k'):    
-                                    print("folytatás")
-                                    break
-                        mozgas(destination[i])
+        etx, ety, etz = vision_position_send(etx, ety, etz)
+        if reached():
+            start_time =time.time()
+            while True:
+                current_time = time.time()
+                elapsed_time = current_time - start_time
+                etx, ety, etz = vision_position_send(etx, ety, etz)
+                print(f"Current position: etx={etx}, ety={ety}, etz={etz}")
+                if elapsed_time >=3:
+                    print("várakozás")
+                    if keyboard.is_pressed('k'):    
+                        print("folytatás")
+                        mission_continue()
+                        break
         print(f'Előző pont sorszáma: {i}.')
         
     print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
