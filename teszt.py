@@ -43,45 +43,6 @@ def send_vision_position_estimate(x, y, z, roll, pitch, yaw):
     connection.mav.send(msg)
     print(f"Vision Position Estimate sent: x={x}, y={y}, z={z}, roll={roll}, pitch={pitch}, yaw={yaw}")
 
-def item(frame, command, current, autocontinue, param1, param2, param3, param4, param5, param6, param7):    #Egy mission elem hozzáfűzése az adott missionhöz
-     global mission
-     mission.append([frame, command,current, autocontinue, param1, param2, param3,param4,param5,param6,param7])
-
-def feltolt():          #Mission feltöltése
-    global mission
-    n=len(mission)
-    connection.mav.mission_count_send(connection.target_system,
-                                    connection.target_component,
-                                    n)
-    for i in range(n):
-        msg=connection.recv_match(type='MISSION_REQUEST', blocking=True)
-        print(msg)
-        connection.mav.mission_item_int_send(connection.target_system,
-                                    connection.target_component,
-                                    i,
-                                    mission[i][0],
-                                    mission[i][1],
-                                    mission[i][2],
-                                    mission[i][3],
-                                    mission[i][4],
-                                    mission[i][5],
-                                    mission[i][6],
-                                    mission[i][7],
-                                    mission[i][8],
-                                    mission[i][9],
-                                    mission[i][10])
-    msg=connection.recv_match(type='MISSION_ACK', blocking=True)
-    print(msg)
-
-def start():            #Mission elindítása
-    connection.mav.command_long_send(connection.target_system, 
-                                connection.target_component,
-                                mavutil.mavlink.MAV_CMD_MISSION_START,
-                                0,0,0,0,0,0,0,0)
-    mode(4) #Guided mode
-    arm(1)  #Armolás
-    mode(3) #Auto mód
-
 # Function to normalize a quaternion
 def normalize_quaternion(q):
     norm = np.linalg.norm(q)
@@ -133,6 +94,14 @@ def mode(mode):
                 connection.target_system,
                 mavutil.mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED,
                 mode)
+
+
+# Function to move the drone to a specified point (x, y, z)
+def mozgas(pont):           
+    connection.mav.send(mavutil.mavlink.MAVLink_set_position_target_local_ned_message(10,connection.target_system,
+                                                                                      connection.target_component, 
+                                                                                      mavutil.mavlink.MAV_FRAME_LOCAL_NED, 
+                                                                                      int(0b110111111000), pont[0], pont[1], pont[2], 10, 10, 5, 0, 0, 0, 0, 0))
 
 # Function to take off    
 def felszall():         
@@ -200,44 +169,6 @@ def vision_position_send(etx,ety,etz):
 
     return tx,ty,tz
 
-# Define waypoints
-def waypoints():
-    width=0.8 #float(input("Width of a shelf: "))
-    height=0.5 #float(input("Height of a shelf: "))
-    shelves_row=3 #int(input("Number of shelf in a row: "))
-    shelves_column=4 #int(input("Number of shelf in a column: "))
-    first_height=0.2 #float(input("Height of the firs row: "))
-    x=0.0
-    y=0.0
-    z=first_height*(-1)
-    destination=[]
-    destination.append([x,y,z])
-    for i in range(shelves_column):
-        for j in range(shelves_row-1):
-            if i%2==0:
-                y+=width
-                destination.append([x,y,z])
-            else:
-                y-=width
-                destination.append([x,y,z])
-        if len(destination)<shelves_column*shelves_row:
-            z-=height
-            destination.append([x,y,z])
-    return destination
-
-def mission_upload_waypoints(destination):
-    item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,1,1,0,0.1,0,0,0,0,0)
-    item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_TAKEOFF,0,1,0,0.1,0,0,0,0,0.2)
-    for i in range(len(destination)):
-        item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_WAYPOINT,0,1,0,0.1,0,0,destination[i][0],destination[i][1],destination[i][2])
-    item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_RETURN_TO_LAUNCH,0,1,0,0,0,0,0,0,0)
-    item(mavutil.mavlink.MAV_FRAME_LOCAL_NED,mavutil.mavlink.MAV_CMD_NAV_LAND,0,1,0,0,0,0,0,0,0)
-
-def mission_clear():
-    connection.mav.mission_clear_all_send(connection.target_system, connection.target_component,255)
-    msg=connection.recv_match(type='MISSION_ACK',blocking=True)
-    print(msg)
-
 # Initialize the ZED camera
 zed = sl.Camera()
 
@@ -268,11 +199,9 @@ zed_pose = sl.Pose()
 runtime_parameters = sl.RuntimeParameters()
 
 # Establish MAVLink connection
-connection=mavutil.mavlink_connection('127.0.0.1:14552')
+connection=mavutil.mavlink_connection('/dev/ttyACM0')
 connection.wait_heartbeat()
 print("Heartbeat from system (system %u component %u)" % (connection.target_system, connection.target_component))
-
-mission_clear()
 
 # Set message interval for VISION_POSITION_ESTIMATE
 connection.mav.command_long_send(connection.target_system,
@@ -285,23 +214,53 @@ angle=0
 etx=0.0
 ety=0.0
 etz=0.0
+vx=0
+vy=0
+vz=0
 i=0
-mission=[]
-destination=waypoints()
-feltolt()
+
+# Define waypoints
+width=0.8 #float(input("Width of a shelf: "))
+height=0.5 #float(input("Height of a shelf: "))
+shelves_row=3 #int(input("Number of shelf in a row: "))
+shelves_column=4 #int(input("Number of shelf in a column: "))
+first_height=0.2 #float(input("Height of the firs row: "))
+x=0.0
+y=0.0
+z=first_height*(-1)
+destination=[]
+destination.append([x,y,z])
+for i in range(shelves_column):
+    for j in range(shelves_row-1):
+        if i%2==0:
+            y+=width
+            destination.append([x,y,z])
+        else:
+            y-=width
+            destination.append([x,y,z])
+    if len(destination)<shelves_column*shelves_row:
+        z-=height
+        destination.append([x,y,z])
+
 
 etx,ety,etz=vision_position_send(etx,ety,etz)
-
-mission_upload_waypoints(destination)
+felszall()
+mozgas(destination[0])
 
 # Main loop to follow waypoints
-while True:
+i=0
+while i<12:
     etx,ety,etz=vision_position_send(etx,ety,etz)
-    msg=connection.recv_match(type='MISSION_REQUEST', blocking=True, timeout=0.01)
-    if msg!=0:
-        print(msg)
+    if etx<=destination[i][0]+0.05 and etx>=destination[i][0]-0.05:
+        if ety<=destination[i][1]+0.05 and ety>=destination[i][1]-0.05:
+            if etz<=destination[i][2]+0.05 and etz>=destination[i][2]-0.05:
+                i+=1
+                if i<12:
+                    mozgas(destination[i])
+    print(f'Előző pont sorszáma: {i}.')
+    
+print(f"vx:{vx}\tvy:{vy}\tvz:{vz}")
 
-mission_clear()
 # Close the camera
 zed.disable_positional_tracking()
 zed.close()
